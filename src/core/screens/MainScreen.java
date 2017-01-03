@@ -4,41 +4,33 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+
 import core.game.GameApp;
 
 /**
- * Created by Rafae on 10/3/2016.
+ * Created by Rafael on 10/3/2016.
+ *
  */
 public class MainScreen implements Screen {
 
     // creating play button
     Stage stage;
-    Skin skin;
-    TextureAtlas buttonAtlas;
     Button playButton;
-    Button.ButtonStyle buttonStyle;
 
     // background
     Image bg;
 
-    // named it mgame instead of game because playButton.addlistener confuses it with the
+    // named it mgame instead of game because playButton addlistener confuses it with the
     // constructor's parameter and asks for it to be a final variable...
-    private GameApp mgame;
-
-    public MainScreen(GameApp game){
-        mgame= game;
-
-
+    public MainScreen(){
         stage = new Stage();
 
         // set up background
@@ -82,8 +74,8 @@ public class MainScreen implements Screen {
         playButton.addListener(new InputListener(){
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                mgame.setScreen(new PlayScreen(mgame));
                 System.out.println("clicked");
+                GameApp.APP.setScreen(new PlayScreen());
                 return true;
             }
         });
@@ -98,9 +90,9 @@ public class MainScreen implements Screen {
     public void render(float delta) {
         stage.act();
 
-        mgame.getBatch().begin();
+        GameApp.APP.getBatch().begin();
         stage.draw();
-        mgame.getBatch().end();
+        GameApp.APP.getBatch().end();
     }
 
     @Override

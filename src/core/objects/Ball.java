@@ -13,27 +13,23 @@ import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.World;
 
 import core.game.GameApp;
-
 import core.handlers.Cons;
 import core.handlers.Res;
 
 import static core.handlers.Cons.PPM;
-import static core.handlers.Cons.VIR_WIDTH;
+import static core.handlers.Cons.BALL_DIAM;
+import static core.handlers.Cons.BALL_FALL_SPEED;
+
 
 /**
- * Created by Rafael on 9/19/2016.
- *
+ * Created by Rafael on 12/29/2016.
+ * Player class but going to implement different input method (hold based)
  */
-public class Player implements InputProcessor {
+public class Ball implements InputProcessor {
 
     // Properties
-    private final int RADIUS = VIR_WIDTH / 20;
+    private final int RADIUS = BALL_DIAM / 2;
 
-
-    // Motion
-   // private final float ACC = (float) 0.8; // acceleration
-    //private final float DACC = (float) 0.2; // deacceleration
-    //private final float MAX_SPEED = (float) 2.3;
     private final float XFORCE = 800; // multiplier for left/rightward swipe
     private final float YForce = 500; // multiplier for upward swipe
     private float x; // virtual coordinates
@@ -55,16 +51,24 @@ public class Player implements InputProcessor {
     private SpriteBatch sb;
 
     // TESTING PARTICLE EFFECTS
-    //TextureAtlas particleAtlas; //<-load some atlas with your particle assets in
-    ParticleEffect effect;
+    ParticleEffect effect;  // Change the "life" property of the effect to change how long the tail
 
-    public Player(World world, Vector2 pos) {
+    // variables for hold-based input
+    private float maxHoldTime = 800; // in milliseconds
+    private float currentHoldTime; // in milliseconds
+    private long holdStartTime;
+    private boolean leftSideTouchDown;
+    private float xForceRatio;
+    private boolean touchedDown = false;
+
+    public Ball(World world, Vector2 pos) {
         this.world = world;
         this.pos = pos;
         this.sb = GameApp.APP.getBatch();
         x = pos.x;
         y = pos.y;
         pos.scl(1 / PPM);
+        xForceRatio = 0;
         construct2d();
         Gdx.input.setInputProcessor(this);
 
@@ -74,8 +78,7 @@ public class Player implements InputProcessor {
     private void initParticleEffect(){
         // TESTING PARTICLE EFFECTS
         effect = new ParticleEffect();
-        //effect.load(Gdx.files.internal("particles/test.txt"), Gdx.files.internal(""));
-        effect.load(Gdx.files.internal("particles/bluedots.p"), Gdx.files.internal(""));
+        effect.load(Gdx.files.internal("particles/ballTail.p"), Gdx.files.internal(""));
         effect.scaleEffect(3);
         effect.getEmitters().first().setPosition(x, y);
         effect.start();
@@ -85,20 +88,42 @@ public class Player implements InputProcessor {
      * Update
      */
     public void update() {
-        body.setLinearVelocity(body.getLinearVelocity().x, -6);
+        body.setLinearVelocity(body.getLinearVelocity().x, BALL_FALL_SPEED);
 
         // update position
         x = body.getPosition().x * PPM;
         y = body.getPosition().y * PPM;
 
+        updateTailEffect(); // 2d particle effect
+        updateLaunch(); // updating hold down time
+    }
+
+    /**
+     * updateTailEffect
+     */
+    private void updateTailEffect() {
         if (effect.isComplete())
             effect.reset();
         effect.setPosition(x, y);
         effect.update(Gdx.graphics.getDeltaTime());
-
-
-
     }
+
+    /**
+     * Update Launch
+     *
+     * I could also just use the boolean that keeps track of the finger being down, and just increase the xForceRatio however i want as long as the boolean is true.
+     */
+    private void updateLaunch() {
+        if (touchedDown) {
+            currentHoldTime = System.currentTimeMillis() - holdStartTime;
+            if (currentHoldTime > maxHoldTime)
+                currentHoldTime = maxHoldTime;
+
+        }
+        xForceRatio = currentHoldTime / maxHoldTime;
+        //System.out.println("currentHoldTime:" + currentHoldTime + "   maxHoldTime: " + maxHoldTime + "  xforceratio " + xForceRatio);
+    }
+
 
     /**
      * Render
@@ -107,6 +132,7 @@ public class Player implements InputProcessor {
         effect.draw(sb, Gdx.graphics.getDeltaTime());
         sb.setColor(1, 1, 1, 1);
         sb.draw(Res.playerTexture, body.getPosition().x * PPM - RADIUS, body.getPosition().y * PPM - RADIUS, RADIUS * 2, RADIUS * 2);
+
     }
 
     /**
@@ -127,17 +153,61 @@ public class Player implements InputProcessor {
         // Define fixture
         FixtureDef fdef = new FixtureDef();
         fdef.shape = shape;
-        fdef.restitution = 0f;
+        fdef.restitution = 1f;
         fdef.friction = 0f;
         fdef.filter.categoryBits = Cons.BIT_PLAYER;
         fdef.filter.maskBits = Cons.BIT_PLAT | Cons.BIT_PLAYER;
 
         // Create the actual fixture onto the body
         Fixture fixture = body.createFixture(fdef);
-        fixture.setUserData(this); // to recognize in contact listener
+        fixture.setUserData("Ball"); // to recognize in contact listener
 
     }
 
+    @Override
+    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+        touchedDown = true;
+
+        holdStartTime = System.currentTimeMillis();
+        if (touchDownLeftSide(screenX)){
+            leftSideTouchDown = true;
+        } else {
+            leftSideTouchDown = false;
+        }
+        return false;
+    }
+
+
+    /*
+     * so this is the method is called right after hitting the play button
+     * so that the mainscreen takes you to the playscreen
+     */
+    @Override
+    public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+        touchedDown = false;
+        currentHoldTime = 0;
+        // avoid the input proble when transitioning from main to play screen
+        if (holdStartTime == 0) {
+            return false;
+        }
+
+        if (leftSideTouchDown) {
+            body.applyForceToCenter(-xForceRatio * XFORCE, 0, true);
+        }
+        else {
+            body.applyForceToCenter(xForceRatio * XFORCE, 0, true);
+        }
+
+
+        return false;
+    }
+
+    private boolean touchDownLeftSide(int screenX) {
+        if (screenX < Gdx.graphics.getWidth() / 2)
+            return true;
+        else
+            return false;
+    }
 
     @Override
     public boolean keyDown(int keycode) {
@@ -151,39 +221,6 @@ public class Player implements InputProcessor {
 
     @Override
     public boolean keyTyped(char character) {
-        return false;
-    }
-
-    @Override
-    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        prevTouchDownX = screenX;
-        prevTouchDownY = screenY;
-        return false;
-    }
-
-    @Override
-    public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-
-        // leftward and rightward swiping
-        float xDragDist = Math.abs(prevTouchDownX - screenX);
-        float xDragRatio = xDragDist / Gdx.graphics.getWidth();// normalize to get: 0 < ratio < 1
-
-        // up swiping
-        float yDragDist = Math.abs(screenY - prevTouchDownY);
-        float yDragRatio = yDragDist / Gdx.graphics.getHeight();// normalize to get: 0 < ratio < 1
-
-        // if swipe was downward then no change
-        if (prevTouchDownY < screenY)
-            yDragRatio = 0;
-
-        if (prevTouchDownX - screenX < 0) {
-            body.applyForceToCenter(xDragRatio * XFORCE, (yDragRatio * YForce), true);
-        }
-        else {
-            body.applyForceToCenter(-xDragRatio * XFORCE, (yDragRatio * YForce), true);
-        }
-
-
         return false;
     }
 
@@ -212,5 +249,21 @@ public class Player implements InputProcessor {
 
     public float getY() {
         return y;
+    }
+
+    public float getxForceRatio() {
+        return xForceRatio;
+    }
+
+    public boolean isLeftSideTouchDown() {
+        return leftSideTouchDown;
+    }
+
+
+    /**
+     * Dispose
+     */
+    public void dispose(){
+        effect.dispose();
     }
 }

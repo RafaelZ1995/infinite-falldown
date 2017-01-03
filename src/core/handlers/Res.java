@@ -10,10 +10,12 @@ import com.badlogic.gdx.graphics.Texture;
 public class Res {
     public static Texture platTexture;
     public  static  Texture playerTexture;
+    public static Texture arrowTexture;
 
     // can i load this statically so I don't actually have to create an instance of Res
     public Res() {
         platTexture = new Texture(Gdx.files.internal("blankTile.png"));
         playerTexture = new Texture(Gdx.files.internal("ball.png"));
+        arrowTexture = new Texture(Gdx.files.internal("blackArrow.png"));
     }
 }
