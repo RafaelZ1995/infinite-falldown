@@ -27,20 +27,33 @@ import static core.handlers.Cons.BALL_FALL_SPEED;
  */
 public class Ball implements InputProcessor {
 
+    // input
+    private boolean freeRoam = true; // freeroam doesnt work with growthPoisoned
+    private boolean moving = false;
+    private float distanceToTravel;
+    private float startX; // x position when last Time touchUp() was called
+    private float endX;
+    //private float distanceBewteen; // distance beetween start and end
+    private float directionX;
+    private float bodyX;
+
     // Properties
     private final int RADIUS = BALL_DIAM / 2;
 
-    private final float XFORCE = 800; // multiplier for left/rightward swipe
+    private final float XFORCE = 1200; // multiplier for left/rightward swipe
     private final float YForce = 500; // multiplier for upward swipe
-    private float x; // virtual coordinates
-    private float y; // virtual coordinates
+    private final float STOP_SWITCH_SPEED = 800;
+    private float virX; // virtual coordinates
+    private float virY; // virtual coordinates
 
-    // Swiping
-    private int prevTouchDownX = Gdx.graphics.getWidth() / 2;
-    private int prevTouchDownY;
 
     // Body
     private Body body;
+
+    // growth "poison"
+    private boolean growthPoisoned = false;
+    private float radiusGrowth = 0; // amount to add to the body's RADIUS every second
+    private float TotalCurrentRadius = RADIUS + radiusGrowth;
 
     // Position
     private Vector2 pos;
@@ -50,23 +63,25 @@ public class Ball implements InputProcessor {
 
     private SpriteBatch sb;
 
-    // TESTING PARTICLE EFFECTS
-    ParticleEffect effect;  // Change the "life" property of the effect to change how long the tail
+    // PARTICLE EFFECTS
+    private ParticleEffect effect;  // Change the "life" property of the effect to change how long the tail
 
     // variables for hold-based input
-    private float maxHoldTime = 800; // in milliseconds
+    private float maxHoldTime = 500; // in milliseconds
     private float currentHoldTime; // in milliseconds
     private long holdStartTime;
     private boolean leftSideTouchDown;
     private float xForceRatio;
     private boolean touchedDown = false;
+    private BallGraph ballGraph;
 
-    public Ball(World world, Vector2 pos) {
+    public Ball(World world, Vector2 pos, BallGraph ballGraph) {
         this.world = world;
         this.pos = pos;
         this.sb = GameApp.APP.getBatch();
-        x = pos.x;
-        y = pos.y;
+        this.ballGraph = ballGraph;
+        virX = pos.x;
+        virY = pos.y;
         pos.scl(1 / PPM);
         xForceRatio = 0;
         construct2d();
@@ -80,22 +95,52 @@ public class Ball implements InputProcessor {
         effect = new ParticleEffect();
         effect.load(Gdx.files.internal("particles/ballTail.p"), Gdx.files.internal(""));
         effect.scaleEffect(3);
-        effect.getEmitters().first().setPosition(x, y);
+        effect.getEmitters().first().setPosition(virX, virY);
         effect.start();
     }
 
     /**
      * Update
      */
+
     public void update() {
+        updateGrowthPoison();
+
+        bodyX = body.getPosition().x;
+        /*
+        System.out.println("stop #: " + ballGraph.getCurrentStop() + "    bodyX: " + body.getPosition().x  +
+                "   destX: " + ballGraph.getxDestination() / PPM +  "   startX " + startX + "   end: " + endX);
+        */
+
         body.setLinearVelocity(body.getLinearVelocity().x, BALL_FALL_SPEED);
 
         // update position
-        x = body.getPosition().x * PPM;
-        y = body.getPosition().y * PPM;
+        virX = body.getPosition().x * PPM;
+        virY = body.getPosition().y * PPM;
 
         updateTailEffect(); // 2d particle effect
-        updateLaunch(); // updating hold down time
+
+        if (freeRoam)
+            updateLaunch(); // updating hold down time
+        else{
+            upgradeGraphMovement();
+        }
+    }
+
+    /**
+     * updateGraphMovement
+     */
+    public void upgradeGraphMovement(){
+        if (moving){
+
+            bodyX += directionX * 0.2f;
+            body.setTransform(bodyX, body.getPosition().y, body.getAngle());
+            if (Math.abs(startX - body.getPosition().x) >= distanceToTravel){
+                //body.setLinearVelocity(0, BALL_FALL_SPEED);
+                body.getPosition().x = endX;
+                moving = false;
+            }
+        }
     }
 
     /**
@@ -104,7 +149,7 @@ public class Ball implements InputProcessor {
     private void updateTailEffect() {
         if (effect.isComplete())
             effect.reset();
-        effect.setPosition(x, y);
+        effect.setPosition(virX, virY);
         effect.update(Gdx.graphics.getDeltaTime());
     }
 
@@ -124,6 +169,14 @@ public class Ball implements InputProcessor {
         //System.out.println("currentHoldTime:" + currentHoldTime + "   maxHoldTime: " + maxHoldTime + "  xforceratio " + xForceRatio);
     }
 
+    private void updateGrowthPoison(){
+        if (growthPoisoned){
+            radiusGrowth += 0.3f;
+        }
+        TotalCurrentRadius = RADIUS + radiusGrowth;
+        body.getFixtureList().first().getShape().setRadius(TotalCurrentRadius / PPM);
+    }
+
 
     /**
      * Render
@@ -131,7 +184,10 @@ public class Ball implements InputProcessor {
     public void render() {
         effect.draw(sb, Gdx.graphics.getDeltaTime());
         sb.setColor(1, 1, 1, 1);
-        sb.draw(Res.playerTexture, body.getPosition().x * PPM - RADIUS, body.getPosition().y * PPM - RADIUS, RADIUS * 2, RADIUS * 2);
+        sb.draw(Res.playerTexture, body.getPosition().x * PPM - TotalCurrentRadius,
+                body.getPosition().y * PPM - TotalCurrentRadius,
+                TotalCurrentRadius * 2,
+                TotalCurrentRadius * 2);
 
     }
 
@@ -156,7 +212,7 @@ public class Ball implements InputProcessor {
         fdef.restitution = 1f;
         fdef.friction = 0f;
         fdef.filter.categoryBits = Cons.BIT_PLAYER;
-        fdef.filter.maskBits = Cons.BIT_PLAT | Cons.BIT_PLAYER;
+        fdef.filter.maskBits = Cons.BIT_PLAT | Cons.BIT_PLAYER | Cons.BIT_SCOREPICKUP;
 
         // Create the actual fixture onto the body
         Fixture fixture = body.createFixture(fdef);
@@ -164,16 +220,21 @@ public class Ball implements InputProcessor {
 
     }
 
+
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
         touchedDown = true;
+        if (freeRoam)
+            touchDownFreeRoam(screenX);
 
-        holdStartTime = System.currentTimeMillis();
+        // graphMovementSystem
         if (touchDownLeftSide(screenX)){
             leftSideTouchDown = true;
         } else {
             leftSideTouchDown = false;
         }
+
+        touchDownGraphMovement();
         return false;
     }
 
@@ -184,20 +245,16 @@ public class Ball implements InputProcessor {
      */
     @Override
     public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        touchedDown = false;
-        currentHoldTime = 0;
-        // avoid the input proble when transitioning from main to play screen
-        if (holdStartTime == 0) {
+
+        if (touchedDown == false)
             return false;
-        }
+        else
+            touchedDown = false;
 
-        if (leftSideTouchDown) {
-            body.applyForceToCenter(-xForceRatio * XFORCE, 0, true);
-        }
-        else {
-            body.applyForceToCenter(xForceRatio * XFORCE, 0, true);
-        }
-
+        if (freeRoam)
+            touchUpFreeRoam();
+        //else
+          //  touchDownGraphMovement();
 
         return false;
     }
@@ -243,12 +300,16 @@ public class Ball implements InputProcessor {
     // getters
 
     // virtual coordinates (already multiplied * PPM)
-    public float getX() {
-        return x;
+    public float getVirX() {
+        return virX;
     }
 
-    public float getY() {
-        return y;
+    public float getVirY() {
+        return virY;
+    }
+
+    public Body getBody() {
+        return body;
     }
 
     public float getxForceRatio() {
@@ -265,5 +326,64 @@ public class Ball implements InputProcessor {
      */
     public void dispose(){
         effect.dispose();
+    }
+
+
+    // ------------------------------DIFFERENT INPUT METHODS----------------------------------------
+    public void touchDownGraphMovement(){
+        // Graph movement system
+        if (leftSideTouchDown) {
+            if (ballGraph.getCurrentStop() == 0)
+                return;
+            ballGraph.nextLeftStop();
+            // body.applyForceToCenter(-XFORCE, 0, true);
+        }
+        else {
+            if (ballGraph.getCurrentStop() == ballGraph.getSize())
+                return;
+            ballGraph.nextRightStop();
+            // body.applyForceToCenter(XFORCE, 0, true);
+        }
+
+        // moving from start to end
+        startX = body.getPosition().x;
+        endX = ballGraph.getxDestination() / PPM;
+        distanceToTravel =  Math.abs(startX - endX); // distance
+        directionX = (endX - startX) / distanceToTravel;
+        body.getPosition().x = startX / PPM; // questionable
+        moving = true;
+    }
+
+
+    // Free roam touch input methods, for touchDown, touchUp
+    private void touchDownFreeRoam(int screenX){
+        touchedDown = true;
+
+        holdStartTime = System.currentTimeMillis();
+        if (touchDownLeftSide(screenX)){
+            leftSideTouchDown = true;
+        } else {
+            leftSideTouchDown = false;
+        }
+    }
+
+    private void touchUpFreeRoam(){
+        touchedDown = false;
+        currentHoldTime = 0;
+        // avoid the input problem when transitioning from main to play screen
+        if (holdStartTime == 0) {
+            return;
+        }
+
+        if (leftSideTouchDown) {
+            body.applyForceToCenter(-xForceRatio * XFORCE, 0, true);
+        }
+        else {
+            body.applyForceToCenter(xForceRatio * XFORCE, 0, true);
+        }
+    }
+
+    public void resetExtraRadiusGrowth() {
+        radiusGrowth = 0;
     }
 }

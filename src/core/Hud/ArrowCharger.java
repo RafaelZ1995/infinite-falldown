@@ -86,4 +86,8 @@ public class ArrowCharger {
         effect.draw(sb, Gdx.graphics.getDeltaTime());
 
     }
+
+    public void dispose(){
+        effect.dispose();
+    }
 }

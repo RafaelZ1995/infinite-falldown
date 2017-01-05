@@ -31,6 +31,8 @@ public class PlayHud {
     private final float scoreX = VIR_WIDTH/2;
     private final float scoreY = VIR_HEIGHT - VIR_HEIGHT/10;
 
+    // add in ArrowCharger and Rain here?
+
     // arrow charger
    // private ArrowCharger arrowCharger;
 

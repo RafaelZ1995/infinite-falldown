@@ -15,7 +15,13 @@ public class Res {
     // can i load this statically so I don't actually have to create an instance of Res
     public Res() {
         platTexture = new Texture(Gdx.files.internal("blankTile.png"));
-        playerTexture = new Texture(Gdx.files.internal("ball.png"));
+        playerTexture = new Texture(Gdx.files.internal("balls/ball3.png"));
         arrowTexture = new Texture(Gdx.files.internal("blackArrow.png"));
+    }
+
+    public void dispose(){
+        platTexture.dispose();
+        platTexture.dispose();
+        arrowTexture.dispose();
     }
 }

@@ -18,15 +18,15 @@ public class Rain {
     //private
     private ParticleEffect effect;
     private float effectWidth = VIR_WIDTH;
-    private float effectHeight = VIR_HEIGHT / 5;
-    private float effectSize= VIR_WIDTH / 60;
+    private float effectHeight = VIR_HEIGHT;
+    private float effectSize= VIR_WIDTH / 10;
 
-    // make them final in Cons later
+    // make them final in Cons later+
     private float x = VIR_WIDTH / 2;
     private float y = effectHeight / 2;
 
     private SpriteBatch sb;
-    private String particlePath = "particles/rain.p";
+    private String particlePath = "particles/rainFallEffect.p";
 
     public Rain() {
         sb = GameApp.APP.getBatch();
@@ -53,5 +53,9 @@ public class Rain {
     public void render(){
         update();
         effect.draw(sb, Gdx.graphics.getDeltaTime());
+    }
+
+    public void dispose(){
+        effect.dispose();
     }
 }

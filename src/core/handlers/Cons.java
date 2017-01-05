@@ -30,10 +30,22 @@ public class Cons {
     // categorybits
     public static final short BIT_PLAYER = 2;
     public static final short BIT_PLAT = 4;
+    public static final short BIT_SCOREPICKUP = 8;
 
     // Player Diameter
-    public static final int BALL_DIAM = (VIR_WIDTH / 25)*2;
-    public static final int BALL_FALL_SPEED = -7;
+    public static final int BALL_DIAM = (VIR_WIDTH / 30)*2;
+    public static final int BALL_FALL_SPEED = -6;
+
+    // Plat info
+    public static final int PLAT_WIDTH = VIR_WIDTH / 4;
+    public static final int PLAT_HEIGHT = VIR_HEIGHT / 60;
+
+    // Wall info
+    public static final int WALL_WIDTH = VIR_WIDTH / 40;
+    public static final int WALL_HEIGHT = VIR_HEIGHT;
+    public static final int LEFT_WALL_X = 0 - WALL_WIDTH; // ADD HALF OF WIDTH
+    public static final int RIGHT_WALL_X = VIR_WIDTH ; // ADD HALF OF WIDTH
+
 
     // Color Pallete
     public static final Color RED = new Color(255/255f,0,0,1); // platforms

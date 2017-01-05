@@ -58,7 +58,7 @@ public class GameApp extends Game {
 
     @Override
     public void render() {
-        System.out.println("FPS: " + Gdx.graphics.getFramesPerSecond());
+        //System.out.println("FPS: " + Gdx.graphics.getFramesPerSecond());
         super.render();
     }
 
@@ -66,6 +66,7 @@ public class GameApp extends Game {
     public void dispose() {
         font128.dispose();
         batch.dispose();
+        res.dispose();
     }
 
     public SpriteBatch getBatch() {
