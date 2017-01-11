@@ -2,7 +2,9 @@ package core.objects;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.ParticleEffect;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -19,6 +21,8 @@ import core.handlers.Res;
 import static core.handlers.Cons.PPM;
 import static core.handlers.Cons.BALL_DIAM;
 import static core.handlers.Cons.BALL_FALL_SPEED;
+import static core.handlers.Cons.BALL_X_FORCE;
+import static core.handlers.Cons.FREE_ROAM;
 
 
 /**
@@ -28,7 +32,7 @@ import static core.handlers.Cons.BALL_FALL_SPEED;
 public class Ball implements InputProcessor {
 
     // input
-    private boolean freeRoam = true; // freeroam doesnt work with growthPoisoned
+    //private boolean freeRoam = false; // freeroam doesnt work with growthPoisoned
     private boolean moving = false;
     private float distanceToTravel;
     private float startX; // x position when last Time touchUp() was called
@@ -40,12 +44,11 @@ public class Ball implements InputProcessor {
     // Properties
     private final int RADIUS = BALL_DIAM / 2;
 
-    private final float XFORCE = 1200; // multiplier for left/rightward swipe
-    private final float YForce = 500; // multiplier for upward swipe
-    private final float STOP_SWITCH_SPEED = 800;
+    private final float XFORCE = BALL_X_FORCE; // multiplier for left/rightward swipe
     private float virX; // virtual coordinates
     private float virY; // virtual coordinates
 
+    private Sprite sprite;
 
     // Body
     private Body body;
@@ -94,7 +97,8 @@ public class Ball implements InputProcessor {
         // TESTING PARTICLE EFFECTS
         effect = new ParticleEffect();
         effect.load(Gdx.files.internal("particles/ballTail.p"), Gdx.files.internal(""));
-        effect.scaleEffect(3);
+        effect.getEmitters().first().getScale().setHigh(BALL_DIAM / 4);
+        //effect.scaleEffect(1);
         effect.getEmitters().first().setPosition(virX, virY);
         effect.start();
     }
@@ -120,7 +124,7 @@ public class Ball implements InputProcessor {
 
         updateTailEffect(); // 2d particle effect
 
-        if (freeRoam)
+        if (FREE_ROAM)
             updateLaunch(); // updating hold down time
         else{
             upgradeGraphMovement();
@@ -184,10 +188,12 @@ public class Ball implements InputProcessor {
     public void render() {
         effect.draw(sb, Gdx.graphics.getDeltaTime());
         sb.setColor(1, 1, 1, 1);
-        sb.draw(Res.playerTexture, body.getPosition().x * PPM - TotalCurrentRadius,
+
+        sb.draw(Res.playerRegion, body.getPosition().x * PPM - TotalCurrentRadius,
                 body.getPosition().y * PPM - TotalCurrentRadius,
                 TotalCurrentRadius * 2,
                 TotalCurrentRadius * 2);
+
 
     }
 
@@ -224,7 +230,7 @@ public class Ball implements InputProcessor {
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
         touchedDown = true;
-        if (freeRoam)
+        if (FREE_ROAM)
             touchDownFreeRoam(screenX);
 
         // graphMovementSystem
@@ -251,7 +257,7 @@ public class Ball implements InputProcessor {
         else
             touchedDown = false;
 
-        if (freeRoam)
+        if (FREE_ROAM)
             touchUpFreeRoam();
         //else
           //  touchDownGraphMovement();

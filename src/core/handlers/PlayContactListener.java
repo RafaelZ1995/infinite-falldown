@@ -69,7 +69,6 @@ public class PlayContactListener implements ContactListener{
             if (fa.getUserData() instanceof ScorePickup || fb.getUserData() instanceof ScorePickup) {
                 playScreen.currentScore++; // increase score
                 playScreen.getPlayer().resetExtraRadiusGrowth();
-                System.out.println("@@@@@@@@got pickup@@@@@@@");
 
                 // free this scorePickup
                 ScorePickup sp = null;
@@ -78,6 +77,8 @@ public class PlayContactListener implements ContactListener{
                 else if (fb.getFilterData().categoryBits == Cons.BIT_SCOREPICKUP)
                     sp = (ScorePickup) fb.getUserData();
 
+
+                playScreen.setBarEffect(sp.getX());
                 playScreen.getScorePickups().removeValue(sp, true);
                 playScreen.getSpPool().free(sp);
             }

@@ -1,6 +1,7 @@
 package core.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
@@ -74,7 +75,7 @@ public class MainScreen implements Screen {
         playButton.addListener(new InputListener(){
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                System.out.println("clicked");
+                System.out.println("clicked play button, setting new playscreen()");
                 GameApp.APP.setScreen(new PlayScreen());
                 return true;
             }
@@ -88,11 +89,24 @@ public class MainScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        handleBackInput();
         stage.act();
-
         GameApp.APP.getBatch().begin();
         stage.draw();
         GameApp.APP.getBatch().end();
+    }
+
+    private void handleBackInput(){
+
+            if (Gdx.input.isKeyPressed(Input.Keys.BACK)){
+                System.out.println("back button pressed on mainscreen");
+                if(!GameApp.APP.isBackPressed) {
+                    GameApp.APP.isBackPressed = true;
+                } else if (GameApp.APP.isBackPressed) {
+                    GameApp.APP.isBackPressed = false;
+                    Gdx.app.exit();
+                }
+            }
     }
 
     @Override

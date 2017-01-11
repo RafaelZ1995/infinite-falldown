@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 
 import core.game.GameApp;
+import core.handlers.Res;
 import core.screens.PlayScreen;
 
 import static core.handlers.Cons.VIR_HEIGHT;
@@ -36,8 +37,9 @@ public class PlayHud {
     // arrow charger
    // private ArrowCharger arrowCharger;
 
-    public PlayHud() {
+    public PlayHud(PlayScreen playScreen) {
         this.sb = GameApp.APP.getBatch();
+        this.playScreen = playScreen;
         //arrowCharger = new ArrowCharger();
     }
 
@@ -46,9 +48,9 @@ public class PlayHud {
      * still gotta make that 56 in a relation to VIR width or height
      */
     public void render(){
-        int depth = ((PlayScreen) (GameApp.APP.getScreen())).getScore();
+        int depth = playScreen.getScore();
         String depthString = String.valueOf(depth);
-        GameApp.font128.draw(sb, depthString, scoreX - 56, scoreY); // font camera already set
+        //Res.font128.draw(sb, depthString, scoreX - 56, scoreY); // font camera already set
 
         //arrowCharger.render();
     }

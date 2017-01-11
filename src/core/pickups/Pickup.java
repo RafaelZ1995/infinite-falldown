@@ -24,17 +24,16 @@ import static core.handlers.Cons.PPM;
 public abstract class Pickup implements Pool.Poolable {
 
     // -------------------------------------- FINAL VARIABLES --------------------------------------
-    private final int RADIUS = BALL_DIAM / 2;
+    protected final int RADIUS = BALL_DIAM / 2;
 
     // -------------------------------------- PROTECTED VARIABLES ----------------------------------
     protected Body body;
     protected float virX; // x position
     protected float virY; // y position
+    protected SpriteBatch sb;
 
     // -------------------------------------- PRIVATE VARIABLES ------------------------------------
     private World world;
-    private SpriteBatch sb;
-    ParticleEffect effect;
 
     // -------------------------------------- PUBLIC METHODS --------------------------------------
 
@@ -50,17 +49,11 @@ public abstract class Pickup implements Pool.Poolable {
         this.virX = initVirX;
         this.virY = initVirY;
         construct2d();
-        initParticleEffect();
     }
 
-    public void update() {
-        updatePickupEffect();
-    }
+    abstract void update();
 
-    public void render() {
-        update();
-        effect.draw(sb, Gdx.graphics.getDeltaTime());
-    }
+    abstract void render();
 
     // -------------------------------------- PRIVATE METHODS --------------------------------------
 
@@ -87,17 +80,6 @@ public abstract class Pickup implements Pool.Poolable {
 
     }
 
-    abstract void initParticleEffect();
-
-    /**
-     * you always have to update the position here apparently.
-     */
-    private void updatePickupEffect() {
-        if (effect.isComplete())
-            effect.reset();
-        effect.setPosition(virX, virY);
-        effect.update(Gdx.graphics.getDeltaTime());
-    }
 
     // -------------------------------------- GETTER METHODS ---------------------------------------
     public float getX() {
@@ -125,7 +107,5 @@ public abstract class Pickup implements Pool.Poolable {
         virY = body.getPosition().y * PPM;
     }
 
-    public void dispose(){
-        effect.dispose();
-    }
+    abstract void dispose();
 }

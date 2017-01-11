@@ -11,6 +11,9 @@ import core.game.GameApp;
  */
 public class Cons {
 
+    // Options
+    public static boolean FREE_ROAM = true; // freeroam doesnt work with growthPoisoned
+
     // GameAPP will be a final constant
    // public static final GameApp APP = GameApp.game;
 
@@ -18,7 +21,7 @@ public class Cons {
     public static final float STEP = 1 / 60f;
 
     // Scale for ortho cameras
-    public static final int SCALE = 2;
+    public static final int SCALE = 1;
 
     // Width and Height but times the SCALE
     public static final int VIR_WIDTH = Gdx.graphics.getWidth() * SCALE;
@@ -32,19 +35,34 @@ public class Cons {
     public static final short BIT_PLAT = 4;
     public static final short BIT_SCOREPICKUP = 8;
 
+
+    public static final float TIME_TO_TRAVEL_1_DEPTH = 7000; // 6 seconds
+
     // Player Diameter
-    public static final int BALL_DIAM = (VIR_WIDTH / 30)*2;
-    public static final int BALL_FALL_SPEED = -6;
+    public static final int BALL_DIAM = (VIR_WIDTH / 30)*4;
+
+    // set Ball's Fall speed in terms of the device's Height!
+    public static final float BALL_FALL_SPEED = -(VIR_HEIGHT / TIME_TO_TRAVEL_1_DEPTH)*10;
+    public static final float BALL_X_FORCE = ((float) VIR_WIDTH / 1500) * 500;
+
+
+    // Map info
+    public final static int PLATS_PER_DEPTH = 2;
+
 
     // Plat info
-    public static final int PLAT_WIDTH = VIR_WIDTH / 4;
-    public static final int PLAT_HEIGHT = VIR_HEIGHT / 60;
+    public static final int PLAT_WIDTH = VIR_WIDTH / 3;
+    public static final int PLAT_HEIGHT = VIR_HEIGHT / 25;
 
     // Wall info
     public static final int WALL_WIDTH = VIR_WIDTH / 40;
     public static final int WALL_HEIGHT = VIR_HEIGHT;
-    public static final int LEFT_WALL_X = 0 - WALL_WIDTH; // ADD HALF OF WIDTH
+    public static final int LEFT_WALL_X = 0 - WALL_WIDTH; // ADD HALF OF WIDTH if you want to show
     public static final int RIGHT_WALL_X = VIR_WIDTH ; // ADD HALF OF WIDTH
+
+    // ScorePickup
+
+
 
 
     // Color Pallete

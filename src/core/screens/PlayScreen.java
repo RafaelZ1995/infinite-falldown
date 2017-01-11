@@ -1,6 +1,7 @@
 package core.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -16,6 +17,7 @@ import java.util.Stack;
 
 import core.Hud.ArrowCharger;
 import core.Hud.Rain;
+import core.Pools.BarEffectPool;
 import core.Pools.PlatPool;
 import core.Pools.WallPool;
 import core.game.GameApp;
@@ -25,10 +27,12 @@ import core.objects.Ball;
 import core.objects.BallGraph;
 import core.objects.Plat;
 import core.objects.Wall;
+import core.particleeffects.BarEffect;
 import core.pickups.ScorePickup;
 import core.Pools.ScorePickupPool;
 
 import static core.handlers.Cons.LEFT_WALL_X;
+import static core.handlers.Cons.PLATS_PER_DEPTH;
 import static core.handlers.Cons.PLAT_HEIGHT;
 import static core.handlers.Cons.RIGHT_WALL_X;
 import static core.handlers.Cons.VIR_WIDTH;
@@ -52,17 +56,18 @@ public class PlayScreen implements Screen {
     //private GameApp game;
     private SpriteBatch sb;
     private World world;
-    private Stack<Body> bodiesToDel;
 
     // Array objects
     private Array<Plat> platforms;
     private Array<Wall> walls;
     private Array<ScorePickup> scorePickups;
+    private Array<BarEffect> barEffects;
 
     // Pools
     private PlatPool platPool;
     private WallPool wallPool;
     private ScorePickupPool spPool;
+    private BarEffectPool barEffectPool;
 
     // For Hud
     private core.Hud.PlayHud hud;
@@ -81,15 +86,15 @@ public class PlayScreen implements Screen {
     public int currentScore = 0;
 
     // BallGraph
-    private int ballGraphNumStops = 0; // num stops in the ballGraph
+    private int ballGraphNumStops = 1; // num stops in the ballGraph
     private BallGraph ballGraph;
+    private boolean isDisposed = false;
 
     public PlayScreen() {
         // this.game = game;
         world = new World(new Vector2(0, -2.81f * 0), true);
         this.sb = GameApp.APP.getBatch();
-        hud = new core.Hud.PlayHud();
-        bodiesToDel = new Stack<Body>();
+        hud = new core.Hud.PlayHud(this);
 
         cl = new PlayContactListener(this);
         world.setContactListener(cl);
@@ -104,11 +109,13 @@ public class PlayScreen implements Screen {
         platforms = new Array<Plat>();
         walls = new Array<Wall>();
         scorePickups = new Array<ScorePickup>();
+        barEffects = new Array<BarEffect>();
 
         // Pools
         platPool = new PlatPool(world);
         wallPool = new WallPool(world);
         spPool = new ScorePickupPool(world);
+        barEffectPool = new BarEffectPool();
 
         // BallGraph
         ballGraph = new BallGraph(ballGraphNumStops);
@@ -128,7 +135,7 @@ public class PlayScreen implements Screen {
 
     // called everytime the game sets the screen to this class
     public void show() {
-        System.out.println("show() in playscreen");
+
     }
 
     /**
@@ -180,17 +187,16 @@ public class PlayScreen implements Screen {
     private void generatePlats() {
         boolean rightAngularVelocity = false;
 
-        int platsPerDepth = 3;
         // draw currentDepth+1, and currentDepth+2 depth PLATFORMS
         for (int i = 1; i < 3; i++) { // 3 should always stay as a 3
             // 4 plats per depth
-            for (int j = 0; j < platsPerDepth; j++) {
+            for (int j = 0; j < PLATS_PER_DEPTH; j++) {
                 // (int)(BALL_DIAM*1.5) to leave 1.5 of diam as minimum space for ball to pass thru
                 float r = MathUtils.random((float)(BALL_DIAM *1.5), VIR_WIDTH - PLAT_WIDTH - (float)(BALL_DIAM *1.5));
 
                 // Get CURRENT PLAT
                 Plat plat = platPool.obtain();
-                plat.setBodyPosition(r, (-(currentDepth + i) * VIR_HEIGHT - j * (VIR_HEIGHT / platsPerDepth)));
+                plat.setBodyPosition(r, (-(currentDepth + i) * VIR_HEIGHT - j * (VIR_HEIGHT / PLATS_PER_DEPTH)));
                 //                   r,   -(overall depth, top of screen) - ( depth between each plat)
 
                 // update angular velocity, when player depth (currentDepth) is > 1, start adding angular velocity
@@ -205,6 +211,8 @@ public class PlayScreen implements Screen {
                 }
                 platforms.add(plat);
 
+
+                // Generate Pickups
                 if (prevPlat != null){
                     float spX = (prevPlat.getX() + plat.getX()) / 2 + PLAT_WIDTH / 2;
                     float spY = (prevPlat.getY() + plat.getY()) / 2 + PLAT_HEIGHT / 2;
@@ -237,6 +245,7 @@ public class PlayScreen implements Screen {
 
     /**
      * generate pickups in between platforms by going through the plats array
+     * // not used ended up doing this along plat generations
      */
     private void generateScorePickups(){
         for (int i = 0; i < platforms.size - 1; i++){
@@ -254,6 +263,10 @@ public class PlayScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        handleBackInput();
+        if (isDisposed)
+            return;
+
         if (crashed){
             GameApp.APP.setScreen(new PlayScreen());
             dispose();
@@ -266,7 +279,6 @@ public class PlayScreen implements Screen {
         world.step(Cons.STEP, 6, 2);
         player.update();
         autoGenerateMap();
-        deleteFlaggedPlats();
         // game cam and b2dcam
         updateCameras(!centerOnPlayer);
 
@@ -275,6 +287,9 @@ public class PlayScreen implements Screen {
 
 
         sb.begin(); // begin
+
+        sb.setProjectionMatrix(GameApp.APP.getFontcam().combined);
+        renderAndRemoveBarEffects();
 
         // Game's projection matrix origin is top left corner
         sb.setProjectionMatrix(GameApp.APP.getCam().combined);
@@ -289,10 +304,22 @@ public class PlayScreen implements Screen {
         arrowCharger.render();
         rain.render();
 
+
+
         sb.end(); // end
 
         //System.out.println("scorepickups.size: " + scorePickups.size + " plats.size: " + platforms.size);
+        //System.out.println("howmany Bes: " + barEffects.size);
+    }
 
+    private void renderAndRemoveBarEffects(){
+        for (BarEffect be : barEffects) {
+            if (be.isComplete()){
+                barEffects.removeValue(be, true);
+                barEffectPool.free(be);
+            }
+            be.render();
+        }
     }
 
     /**
@@ -365,13 +392,20 @@ public class PlayScreen implements Screen {
 
     }
 
-
-    // Destroy the bodies that were pushed into the stack
-    private void deleteFlaggedPlats() {
-        while (!bodiesToDel.isEmpty()) {
-            world.destroyBody(bodiesToDel.pop());
+    /**
+     * GOTTA IMPLEMENT THIS IN A DIFF WAY CAUSE U GOTTA MAKE SURE YOU STOP THE CURRENT RENDER
+     * LOOP WITH A RETURN, SO THAT NOTHING ELSE IS CALLED ONCE EVERYTHING IS DISPOSED
+     */
+    private void handleBackInput(){
+        if (Gdx.input.isKeyPressed(Input.Keys.BACK)){
+            GameApp.APP.isBackPressed = true;
+            GameApp.APP.setScreen(new MainScreen());
+            dispose();
+            System.out.println("BACK INPUT END");
+            isDisposed = true;
         }
     }
+
 
     // GETTERS
 
@@ -397,9 +431,14 @@ public class PlayScreen implements Screen {
 
     // SETTERS
 
-
     public void setCrashed(boolean crashed) {
         this.crashed = crashed;
+    }
+
+    public void setBarEffect(float virX){
+        BarEffect be = barEffectPool.obtain();
+        be.setVirX(virX);
+        barEffects.add(be);
     }
 
     @Override
@@ -431,5 +470,7 @@ public class PlayScreen implements Screen {
         // dipose of all scorepickups when finally done, in order to dispose all effects
         for (ScorePickup sp : scorePickups)
             sp.dispose();
+        for (BarEffect be : barEffects)
+            be.dispose();
     }
 }

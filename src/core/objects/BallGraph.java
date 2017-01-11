@@ -33,7 +33,7 @@ public class BallGraph {
 
         // correct end points
         graphX[0] = graphX[0] + BALL_DIAM;
-        graphX[graphX.length - 1] = graphX[graphX.length - 1] - BALL_DIAM / 2;
+        graphX[graphX.length - 1] = graphX[graphX.length - 1] - BALL_DIAM;
 
         // initialize to a stop in the middle
         System.out.println(graphX.length);

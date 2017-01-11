@@ -1,0 +1,27 @@
+
+yay.png
+size: 1024,1024
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+PlatTile
+  rotate: false
+  xy: 2, 2
+  size: 256, 64
+  orig: 256, 64
+  offset: 0, 0
+  index: -1
+ball3
+  rotate: false
+  xy: 2, 68
+  size: 256, 256
+  orig: 256, 256
+  offset: 0, 0
+  index: -1
+blackArrow
+  rotate: false
+  xy: 2, 326
+  size: 1000, 256
+  orig: 1000, 256
+  offset: 0, 0
+  index: -1

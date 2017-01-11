@@ -77,10 +77,9 @@ public class ArrowCharger {
 
     public void render() {
         update();
-
         sb.setColor(1, 1, 1, 1);
-        sb.draw(Res.arrowTexture, x, y, -arrowPngWidth, arrowPngheight); // left arrow
-        sb.draw(Res.arrowTexture, x, y, arrowPngWidth, arrowPngheight); // right arrow
+        sb.draw(Res.arrowRegion, x, y, -arrowPngWidth, arrowPngheight); // left arrow
+        sb.draw(Res.arrowRegion, x, y, arrowPngWidth, arrowPngheight); // right arrow
 
         // effect on top of arrows
         effect.draw(sb, Gdx.graphics.getDeltaTime());

@@ -1,5 +1,7 @@
 package core.objects;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.g2d.ParticleEffect;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -8,28 +10,32 @@ import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.utils.Pool;
 
 import core.game.GameApp;
 import core.handlers.Cons;
 import core.handlers.Res;
 
+import static core.handlers.Cons.BLUE;
+import static core.handlers.Cons.PLAT_HEIGHT;
+import static core.handlers.Cons.PLAT_WIDTH;
 import static core.handlers.Cons.PPM;
 
 /**
  * Created by Rafael on 1/1/2017.
  *
  */
-public abstract class Box2dPlat {
+public abstract class Box2dPlat implements Pool.Poolable{
 
     // private
-    private float virX; // x position
-    private float virY; // y position
-    private float width;
-    private float height;
+    protected float virX; // x position
+    protected float virY; // y position
+    protected float width;
+    protected float height;
     protected Sprite sprite;
     protected Body body;
     private World world;
-    private SpriteBatch sb;
+    protected SpriteBatch sb;
 
     protected Box2dPlat(World world, int width, int height, float initVirX, float initVirY) {
         this.world = world;
@@ -39,9 +45,11 @@ public abstract class Box2dPlat {
         this.virX = initVirX;
         this.virY = initVirY;
         construct2d();
-        sprite = new Sprite(Res.platTexture, width, height);
-
+        sprite = new Sprite(Res.platRegion);//new Sprite(Res.platTexture, width, height);
+        sprite.setColor(BLUE);
+        sprite.setSize(width, height);
     }
+
 
     public void construct2d() {
         // Define box2d body
@@ -66,17 +74,10 @@ public abstract class Box2dPlat {
         Fixture fixture = body.createFixture(fdef);
     }
 
-    public void update() {
-        virX = body.getPosition().x * PPM - width / 2; // revert the additions done when setting position of the body in construct2d()
-        virY = body.getPosition().y * PPM + height / 2; //  revert the substraction done when setting position of the body in construct2d()
-        sprite.setPosition(virX, virY - height);
-        sprite.setRotation((float) Math.toDegrees(body.getAngle())); // so that sprite is attached to body
-    }
 
-    public void render() {
-        update();
-        sprite.draw(sb);
-    }
+    abstract void update();
+
+    abstract void render();
 
     public Body getBody() {
         return body;
