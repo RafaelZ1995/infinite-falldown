@@ -110,4 +110,4 @@ additive: true
 behind: false
 premultipliedAlpha: false
 - Image Path -
-/C:/Users/Rafae/Libgdx Game WorkSpace/Falldown-bounce/android/assets/barEffectBlock.png
+barEffectBlock.png

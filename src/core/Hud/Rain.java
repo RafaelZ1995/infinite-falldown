@@ -29,7 +29,7 @@ public class Rain {
     private String particlePath = "particles/rainFallEffect.p";
 
     public Rain() {
-        sb = GameApp.APP.getBatch();
+        sb = GameApp.APP.getSb();
         initParticleEffect();
     }
 

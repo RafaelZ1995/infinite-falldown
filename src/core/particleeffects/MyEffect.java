@@ -1,6 +1,5 @@
 package core.particleeffects;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.ParticleEffect;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Pool;
@@ -18,7 +17,7 @@ public abstract class MyEffect implements Pool.Poolable{
 
 
     public MyEffect() {
-        sb = GameApp.APP.getBatch();
+        sb = GameApp.APP.getSb();
     }
 
     abstract void render();

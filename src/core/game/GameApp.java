@@ -2,22 +2,20 @@ package core.game;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.FPSLogger;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Interpolation;
-import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 
 import core.handlers.Res;
 import core.screens.MainScreen;
-import core.screens.PlayScreen;
 import core.screens.SplashScreen;
 
 import static core.handlers.Cons.VIR_HEIGHT;
@@ -33,6 +31,27 @@ import static core.handlers.Cons.VIR_WIDTH;
  */
 public class GameApp extends Game {
 
+
+
+    // fading in
+    private Stage stage;
+    private Table fadingTable;
+    private Pixmap pixmap;
+    private Drawable drawable;
+
+    // my fade in
+    private Sprite sprite;
+    private Texture texture;
+    private float currentFade = 0;
+    private boolean shouldFadeOnce = false;
+    private boolean fadeInDone = false;
+    private float fadeFor = 0.5f; // stay black for half a second
+    private float hasFadedFor = 0; // amount of time it has been black
+
+
+
+
+
     // public
     public static GameApp APP; // Tried making this a final static in Cons... That is a big NO NO.
 
@@ -41,7 +60,7 @@ public class GameApp extends Game {
     private boolean isMainScreenSet = false; // after splash screen is done
 
     // private
-    private SpriteBatch batch;
+    private SpriteBatch sb;
     private OrthographicCamera cam;
     private Res res; // this does need to be initialized
     private OrthographicCamera fontcam;
@@ -49,13 +68,13 @@ public class GameApp extends Game {
     private float splashTime = 0;
 
     FPSLogger logger = new FPSLogger();
-
+    private boolean fadeOutDone;
 
 
     @Override
     public void create() {
         APP = this;
-        batch = new SpriteBatch();
+        sb = new SpriteBatch();
         Gdx.input.setCatchBackKey(true);
 
         // Load assets
@@ -74,19 +93,36 @@ public class GameApp extends Game {
         this.setScreen(new SplashScreen());
 
 
-        System.out.println("Vir_WIDTH: " + VIR_WIDTH + "  Vir_HEIGHT: " + VIR_HEIGHT);
+        // fading in
+        stage = new Stage();
+        fadingTable = new Table();
+        //pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+
+        // my fade in
+        texture = new Texture(Gdx.files.internal("objects/barEffectBlock.png"));
+        sprite = new Sprite(texture);
+        sprite.setSize(VIR_WIDTH, VIR_HEIGHT);
+        sprite.setColor(Color.BLACK);
+
+
+
+
+        //System.out.println("Vir_WIDTH: " + VIR_WIDTH + "  Vir_HEIGHT: " + VIR_HEIGHT);
     }
 
     @Override
     public void render() {
-
         //System.out.println("FPS: " + Gdx.graphics.getFramesPerSecond());
         logger.log();
+        //System.out.println("dt: " + Gdx.graphics.getDeltaTime() * 10);
 
-        batch.totalRenderCalls = 0;
+        sb.totalRenderCalls = 0;
+
+        if (splashTime > 1.5)
+            shouldFadeOnce = true;
 
         if (splashTime > 2){ // if true, then we are done loading
-            //APP.getScreen().dispose();
+
             if (!isMainScreenSet) {
                 APP.getScreen().dispose();
                 isMainScreenSet = true;
@@ -98,19 +134,59 @@ public class GameApp extends Game {
             splashTime += Gdx.graphics.getDeltaTime();
         }
 
-        int calls = batch.totalRenderCalls;
-        //System.out.println("total render calls: " + calls);
+        int calls = sb.totalRenderCalls;
+
+        if (shouldFadeOnce)
+            renderFading();
+    }
+
+    private void renderFading() {
+
+        if (!fadeInDone)
+            currentFade += 0.05f;
+
+        if (currentFade > 1) {
+            fadeInDone = true;
+        }
+
+        if (fadeInDone){
+            hasFadedFor += Gdx.graphics.getDeltaTime();
+        }
+
+        if (fadeInDone && hasFadedFor > fadeFor) {
+
+
+            currentFade -= 0.05f;
+            if (currentFade < 0){
+                currentFade = 0;
+                fadeOutDone = true;
+            }
+        }
+
+        if (fadeInDone && fadeOutDone){
+            shouldFadeOnce = false;
+            return;
+        }
+
+
+
+        sprite.setAlpha(currentFade);
+        //System.out.println(currentFade);
+        sb.begin();
+        sb.setProjectionMatrix(fontcam.combined);
+        sprite.draw(sb);
+        sb.end();
     }
 
     @Override
     public void dispose() {
-        batch.dispose();
+        sb.dispose();
         res.dispose();
     }
 
 
-    public SpriteBatch getBatch() {
-        return batch;
+    public SpriteBatch getSb() {
+        return sb;
     }
 
     public OrthographicCamera getCam() {

@@ -7,30 +7,26 @@ import static core.handlers.Cons.VIR_HEIGHT;
 import static core.handlers.Cons.VIR_WIDTH;
 
 /**
- * Created by Rafael on 1/6/2017.
- *
- * @@@ I CAN PROBABLY CHANGE THE SIZE OF THE TEXTURE IN RELATION TO THE USER'S RESOLUTION
- * AND THEN USE THAT AS THE PARTICLE PNG SO THAT IT SCALES CORRECTLY AS A THIN COLUMN
- * IN EVERY DEVICE
+ * Created by Rafae on 1/11/2017.
  */
-public class BarEffect extends MyEffect {
+public class BallExplosion extends MyEffect {
 
     private float virX;
+    private float virY;
 
-    public BarEffect() {
+    public BallExplosion() {
         super();
         initParticleEffect();
     }
 
     private void initParticleEffect() {
         effect = new ParticleEffect();
-        effect.load(Gdx.files.internal("particles/barEffect.p"), Gdx.files.internal("objects/"));
-        effect.getEmitters().first().getScale().setHigh(VIR_HEIGHT/10);
+        effect.load(Gdx.files.internal("particles/ballExplosion.p"), Gdx.files.internal("balls/"));
         effect.start();
     }
 
     private void update() {
-        effect.setPosition(virX, VIR_WIDTH / 2);
+        effect.setPosition(virX, virY);
         effect.update(Gdx.graphics.getDeltaTime());
     }
 
@@ -50,8 +46,9 @@ public class BarEffect extends MyEffect {
         effect.reset();
     }
 
-    public void setVirX(float virX) {
+    public void setPosition(float virX, float virY){
         this.virX = virX;
+        this.virY = virY;
     }
 
     public boolean isComplete(){

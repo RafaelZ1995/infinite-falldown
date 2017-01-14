@@ -1,10 +1,14 @@
 package core.objects;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.physics.box2d.World;
 
 import core.handlers.Cons;
+import core.handlers.Res;
 
+import static core.handlers.Cons.BLUE;
 import static core.handlers.Cons.PPM;
 
 /**
@@ -15,7 +19,11 @@ public class Wall extends Box2dPlat {
     public Wall(World world, int width, int height, float initVirX, float initVirY) {
         super(world, width, height, initVirX, initVirY);
         body.getFixtureList().first().setUserData("Wall");
-        //sprite.setColor();
+
+        sprite = new Sprite(Res.wallTexture);//new Sprite(Res.platTexture, width, height);
+        sprite.setColor(Color.WHITE);
+        sprite.setSize(width, height);
+        sprite.setOrigin(width / 2, height / 2); // needed for sprite to stay on body when rotating
     }
 
     public void update() {

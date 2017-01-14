@@ -36,9 +36,9 @@ public class ArrowCharger {
     /**
      * Constructor
      */
-    public ArrowCharger(PlayScreen playScreen) {
-        sb = GameApp.APP.getBatch();
-        ball = playScreen.getPlayer();
+    public ArrowCharger(Ball ball) {
+        sb = GameApp.APP.getSb();
+        this.ball = ball;
         initParticleEffect();
     }
 

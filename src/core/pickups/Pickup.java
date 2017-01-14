@@ -1,7 +1,5 @@
 package core.pickups;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.g2d.ParticleEffect;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
@@ -45,7 +43,7 @@ public abstract class Pickup implements Pool.Poolable {
      */
     public Pickup(World world, float initVirX, float initVirY) {
         this.world = world;
-        this.sb = GameApp.APP.getBatch();
+        this.sb = GameApp.APP.getSb();
         this.virX = initVirX;
         this.virY = initVirY;
         construct2d();
@@ -61,7 +59,7 @@ public abstract class Pickup implements Pool.Poolable {
         // Define box2d body
         BodyDef bdef = new BodyDef();
         bdef.position.set(virX / PPM, virY / PPM);
-        bdef.type = BodyDef.BodyType.DynamicBody;
+        bdef.type = BodyDef.BodyType.KinematicBody;
         body = world.createBody(bdef);
 
         // set shape

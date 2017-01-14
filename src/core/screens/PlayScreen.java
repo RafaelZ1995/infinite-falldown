@@ -8,25 +8,22 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Array;
 
-import java.util.Stack;
-
-import core.Hud.ArrowCharger;
-import core.Hud.Rain;
+import core.Pools.BallExplosionPool;
 import core.Pools.BarEffectPool;
 import core.Pools.PlatPool;
 import core.Pools.WallPool;
 import core.game.GameApp;
-import core.handlers.Cons;
 import core.handlers.PlayContactListener;
+import core.handlers.Res;
 import core.objects.Ball;
 import core.objects.BallGraph;
 import core.objects.Plat;
 import core.objects.Wall;
+import core.particleeffects.BallExplosion;
 import core.particleeffects.BarEffect;
 import core.pickups.ScorePickup;
 import core.Pools.ScorePickupPool;
@@ -49,6 +46,9 @@ import static core.handlers.Cons.WALL_HEIGHT;
  */
 public class PlayScreen implements Screen {
 
+
+
+
     // debugging
     private Box2DDebugRenderer b2dr;
     private OrthographicCamera b2dcam;
@@ -62,17 +62,18 @@ public class PlayScreen implements Screen {
     private Array<Wall> walls;
     private Array<ScorePickup> scorePickups;
     private Array<BarEffect> barEffects;
+    private Array<BallExplosion> ballExplosions;
 
     // Pools
     private PlatPool platPool;
     private WallPool wallPool;
     private ScorePickupPool spPool;
     private BarEffectPool barEffectPool;
+    private BallExplosionPool ballExplosionPool;
 
     // For Hud
     private core.Hud.PlayHud hud;
-    private ArrowCharger arrowCharger;
-    private Rain rain;
+
 
     // DEPTH
     private int currentDepth = -1; // current depth (how many VIR_HEIGHT's the player has gone down)
@@ -83,6 +84,7 @@ public class PlayScreen implements Screen {
     // player
     private Ball player;
     private boolean crashed = false;
+    private boolean isPlayerDestroyed = false;
     public int currentScore = 0;
 
     // BallGraph
@@ -90,11 +92,22 @@ public class PlayScreen implements Screen {
     private BallGraph ballGraph;
     private boolean isDisposed = false;
 
+    // Score stage
+    ScoreStage scoreStage;
+
+    // pseudo Screen logic
+    private boolean isPlayingScreen = true;
+    private boolean isScoreScreen = false;
+
+    private boolean playInitialized = false;
+
+    // Pseudo Score screen
+    //private Stage scoreStage;
+
     public PlayScreen() {
-        // this.game = game;
-        world = new World(new Vector2(0, -2.81f * 0), true);
-        this.sb = GameApp.APP.getBatch();
-        hud = new core.Hud.PlayHud(this);
+        world = new World(new Vector2(0, 0), true);
+        this.sb = GameApp.APP.getSb();
+
 
         cl = new PlayContactListener(this);
         world.setContactListener(cl);
@@ -110,12 +123,14 @@ public class PlayScreen implements Screen {
         walls = new Array<Wall>();
         scorePickups = new Array<ScorePickup>();
         barEffects = new Array<BarEffect>();
+        ballExplosions = new Array<BallExplosion>();
 
         // Pools
         platPool = new PlatPool(world);
         wallPool = new WallPool(world);
         spPool = new ScorePickupPool(world);
         barEffectPool = new BarEffectPool();
+        ballExplosionPool = new BallExplosionPool();
 
         // BallGraph
         ballGraph = new BallGraph(ballGraphNumStops);
@@ -124,14 +139,13 @@ public class PlayScreen implements Screen {
         initializeMap();
 
         // spawn location should be fully based on Vir values
-        player = new Ball(world, new Vector2(ballGraph.getxDestination(), -VIR_HEIGHT / 2 - BALL_DIAM), ballGraph);
+        player = new Ball(world, new Vector2(VIR_WIDTH / 2, -VIR_HEIGHT / 2 - BALL_DIAM), ballGraph);
+        hud = new core.Hud.PlayHud(this);
 
-        // hud camera elements
-        arrowCharger = new ArrowCharger(this);
-        rain = new Rain();
+        scoreStage = new ScoreStage(this);
+
 
     }
-
 
     // called everytime the game sets the screen to this class
     public void show() {
@@ -155,12 +169,13 @@ public class PlayScreen implements Screen {
         walls.add(rightSide);
     }
 
+
     /*
     Given the depth currentDepth,
     in initialize map we create the side walls at height currentDepth = 0 (VIR_HEIGHT * currentDepth)
     then at every even number of currentDepth (currentDepth starts at -1) this method draws
     both walls and horizonal plats at height (VIR_HEIGHT * (currentDepth+1)) and (VIR_HEIGHT * (currentDepth+2))
- */
+    */
     boolean currentNgenerated = false; // have (currentDepth+1) and (currentDepth+2) plats been generated?
 
     private void autoGenerateMap(){
@@ -175,6 +190,17 @@ public class PlayScreen implements Screen {
             generatePlats();
             System.out.println("GENERATING WHOLE MAP STEP");
             //generateScorePickups();
+        }
+    }
+
+    private void updateWallGeneration(){
+        currentDepth = Math.abs((int) (player.getVirY() / WALL_HEIGHT));
+
+        if (currentDepth % 2 == 1)
+            currentNgenerated = false;
+        if (currentDepth % 2 == 0 && !currentNgenerated){
+            currentNgenerated = true;
+            generateWalls(); // draw currentDepth+1, and currentDepth+2 depth WALLS
         }
     }
 
@@ -243,73 +269,86 @@ public class PlayScreen implements Screen {
         }
     }
 
-    /**
-     * generate pickups in between platforms by going through the plats array
-     * // not used ended up doing this along plat generations
-     */
-    private void generateScorePickups(){
-        for (int i = 0; i < platforms.size - 1; i++){
-
-            // To these you have to add PLAT_WIDTH / 2, and PLAT_HEIGHT / 2
-            // if not, the pickup will be centered but using the topleft corners of each plat
-            float spX = (platforms.get(i).getX() + platforms.get(i + 1).getX()) / 2 + PLAT_WIDTH / 2;
-            float spY = (platforms.get(i).getY() + platforms.get(i + 1).getY()) / 2 + PLAT_HEIGHT / 2;
-            ScorePickup sp = spPool.obtain();
-            sp.setBodyPosition(spX, spY);
-            scorePickups.add(sp);
-            //System.out.println("spXY(" + spX + ", " + spY + ")" + "  body pos:" + sp.getBody().getPosition());
-        }
-    }
-
     @Override
     public void render(float delta) {
+        Gdx.gl.glClearColor(0, 0, 0, 1);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         handleBackInput();
+       // b2dr.render(world, b2dcam.combined);
         if (isDisposed)
             return;
 
-        if (crashed){
-            GameApp.APP.setScreen(new PlayScreen());
-            dispose();
-            return;
+        if (crashed && !isPlayerDestroyed){
+            Gdx.input.setInputProcessor(scoreStage.getStage());
+            updateBestScore(currentScore);
+
+            isScoreScreen = true;
+            isPlayingScreen = false;
+            if (!isPlayerDestroyed) {
+                world.destroyBody(player.getBody());
+                player.dispose();
+                player = null;
+                isPlayerDestroyed = true;
+            }
         }
 
-        //Gdx.gl.glClearColor(198, 198, 198, 1);
-        Gdx.gl.glClearColor(0, 0, 0, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        world.step(Cons.STEP, 6, 2);
-        player.update();
-        autoGenerateMap();
-        // game cam and b2dcam
-        updateCameras(!centerOnPlayer);
 
-        // render
-        //b2dr.render(world, b2dcam.combined);
+    if (isPlayingScreen){
+            // updating
+            autoGenerateMap();
 
+            if (!playInitialized) {
+                playInitialized = true;
+            }
+            updateCameras(!centerOnPlayer); // game and b2d cams
 
-        sb.begin(); // begin
+            // rendering
+            sb.begin();
+            sb.setProjectionMatrix(GameApp.APP.getFontcam().combined);
+            renderAndRemoveBarEffects();
 
-        sb.setProjectionMatrix(GameApp.APP.getFontcam().combined);
-        renderAndRemoveBarEffects();
+            // GAME CAM
+            sb.setProjectionMatrix(GameApp.APP.getCam().combined);
+            renderAndRemovePlats();
+            renderAndRemoveWalls();
+            renderAndFreeScorePickups();
+            player.render();
 
-        // Game's projection matrix origin is top left corner
-        sb.setProjectionMatrix(GameApp.APP.getCam().combined);
-        renderAndRemovePlats();
-        renderAndRemoveWalls();
-        renderAndFreeScorePickups();
-        player.render();
+            sb.setProjectionMatrix(GameApp.APP.getFontcam().combined);
+            hud.render();
+            sb.end();
+        } else if (isScoreScreen){
+            scoreStage.getStage().act();
+            sb.begin();
+            // GAME CAM
+            sb.setProjectionMatrix(GameApp.APP.getCam().combined);
+            renderAndRemovePlats();
+            renderAndRemoveWalls();
+            renderAndFreeScorePickups();
+            //player.render();
+            for (BallExplosion b: ballExplosions)
+                    b.render();
 
-        // Fontcams projection matrix (0,0) (the origin) is bottom left corner of screen
-        sb.setProjectionMatrix(GameApp.APP.getFontcam().combined);
-        hud.render();
-        arrowCharger.render();
-        rain.render();
+            // Hud cam
+            sb.setProjectionMatrix(GameApp.APP.getFontcam().combined);
+            scoreStage.render(); // render here
+            //hud.render();
+            hud.getRain().render();
 
+            scoreStage.getStage().draw();
 
+            sb.end();
+        }
 
-        sb.end(); // end
+        world.step(Gdx.graphics.getDeltaTime(), 6, 2);
+    }
 
-        //System.out.println("scorepickups.size: " + scorePickups.size + " plats.size: " + platforms.size);
-        //System.out.println("howmany Bes: " + barEffects.size);
+    private void updateBestScore(int currentScore) {
+        int bestScore = Res.prefs.getInteger("bestscore");
+        if (currentScore > bestScore){
+            Res.prefs.putInteger("bestscore", currentScore);
+            Res.prefs.flush();
+        }
     }
 
     private void renderAndRemoveBarEffects(){
@@ -337,6 +376,7 @@ public class PlayScreen implements Screen {
             }
         }
     }
+
 
     /**
      * Puts Walls and their 2d bodies that were left behind back into the wallPool.
@@ -398,14 +438,17 @@ public class PlayScreen implements Screen {
      */
     private void handleBackInput(){
         if (Gdx.input.isKeyPressed(Input.Keys.BACK)){
-            GameApp.APP.isBackPressed = true;
-            GameApp.APP.setScreen(new MainScreen());
-            dispose();
-            System.out.println("BACK INPUT END");
-            isDisposed = true;
+            if (isScoreScreen){
+                GameApp.APP.isBackPressed = true;
+                dispose();
+                isDisposed = true;
+                GameApp.APP.setScreen(new MainScreen());
+
+            }
+
+
         }
     }
-
 
     // GETTERS
 
@@ -441,6 +484,12 @@ public class PlayScreen implements Screen {
         barEffects.add(be);
     }
 
+    public void renderBallExplosion(float virX, float virY){
+        BallExplosion be = ballExplosionPool.obtain();
+        be.setPosition(virX, virY);
+        ballExplosions.add(be);
+    }
+
     @Override
     public void resize(int width, int height) {
 
@@ -463,14 +512,16 @@ public class PlayScreen implements Screen {
 
     @Override
     public void dispose() {
-        player.dispose();
+        if (player != null)
+            player.dispose();
         world.dispose();
-        arrowCharger.dispose();
-        rain.dispose();
+        hud.dispose();
         // dipose of all scorepickups when finally done, in order to dispose all effects
         for (ScorePickup sp : scorePickups)
             sp.dispose();
         for (BarEffect be : barEffects)
+            be.dispose();
+        for (BallExplosion be : ballExplosions)
             be.dispose();
     }
 }

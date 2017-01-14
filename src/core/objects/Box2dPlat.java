@@ -1,7 +1,6 @@
 package core.objects;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.g2d.ParticleEffect;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -17,8 +16,6 @@ import core.handlers.Cons;
 import core.handlers.Res;
 
 import static core.handlers.Cons.BLUE;
-import static core.handlers.Cons.PLAT_HEIGHT;
-import static core.handlers.Cons.PLAT_WIDTH;
 import static core.handlers.Cons.PPM;
 
 /**
@@ -41,13 +38,11 @@ public abstract class Box2dPlat implements Pool.Poolable{
         this.world = world;
         this.width = width;
         this.height = height;
-        this.sb = GameApp.APP.getBatch();
+        this.sb = GameApp.APP.getSb();
         this.virX = initVirX;
         this.virY = initVirY;
         construct2d();
-        sprite = new Sprite(Res.platRegion);//new Sprite(Res.platTexture, width, height);
-        sprite.setColor(BLUE);
-        sprite.setSize(width, height);
+
     }
 
 

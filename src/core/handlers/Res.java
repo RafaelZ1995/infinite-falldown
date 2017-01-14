@@ -1,6 +1,7 @@
 package core.handlers;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.assets.loaders.FileHandleResolver;
 import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver;
@@ -22,12 +23,17 @@ import static core.handlers.Cons.VIR_WIDTH;
  */
 public class Res {
 
+    // Saving data
+    public static Preferences prefs;
+    public static int highScore;
+
     private AssetManager assetManager;
 
-    public static Texture platTexture;
-    public  static  Texture playerTexture;
-    public static Texture arrowTexture;
+    //public static Texture platTexture;
+    //public  static  Texture playerTexture;
+    //public static Texture arrowTexture;
     public static BitmapFont font128;
+    public static BitmapFont blackery128;
     private boolean texturesLoaded = false;
 
     private TextureAtlas textureAtlas;
@@ -35,21 +41,34 @@ public class Res {
     public static TextureRegion arrowRegion;
     public static TextureRegion playerRegion;
 
+    public static Texture wallTexture;
+
 
     // can i load this statically so I don't actually have to create an instance of Res
     public Res() {
 
-        platTexture = new Texture(Gdx.files.internal("objects/PlatTile.png"));
-        arrowTexture = new Texture(Gdx.files.internal("objects/blackArrow.png"));
-        playerTexture = new Texture(Gdx.files.internal("balls/ball3.png"));
+        //platTexture = new Texture(Gdx.files.internal("objects/PlatTile.png"));
+        //arrowTexture = new Texture(Gdx.files.internal("objects/blackArrow.png"));
+        //playerTexture = new Texture(Gdx.files.internal("balls/ball3.png"));
 
-        //generateFontASyn();
-        font128 = new BitmapFont(Gdx.files.internal("fonts/roboto128/Roboto-LightItalic.fnt"));
+
+        wallTexture = new Texture(Gdx.files.internal("objects/WallTile.png"));
+        // get font from pngs
+        font128 = new BitmapFont(Gdx.files.internal("fonts/roboto128/roboto128.fnt"));
+
+        //font128 = new BitmapFont(Gdx.files.internal("fonts/blackery128/blackery128.fnt"));
+        //font128.setUseIntegerPositions(true);
 
         textureAtlas = new TextureAtlas(Gdx.files.internal("atlas/yay.atlas"));
         platRegion = textureAtlas.findRegion("PlatTile");
         arrowRegion = textureAtlas.findRegion("blackArrow");
         playerRegion = textureAtlas.findRegion("ball3");
+
+
+
+        // high score
+        prefs = Gdx.app.getPreferences("My Preferences");
+        highScore = prefs.getInteger("bestscore", 0);
 
         // using Libgdx's assetManager
         /*
@@ -76,9 +95,9 @@ public class Res {
         //.... check if they have been already loaded and then call this method.
 
         font128 = assetManager.get("fonts/Roboto-LightItalic.ttf");
-        platTexture = assetManager.get("blankTile.png", Texture.class);
-        playerTexture = assetManager.get("balls/ball3.png", Texture.class);
-        arrowTexture = assetManager.get("blackArrow.png", Texture.class);
+       // platTexture = assetManager.get("blankTile.png", Texture.class);
+        //playerTexture = assetManager.get("balls/ball3.png", Texture.class);
+        //arrowTexture = assetManager.get("blackArrow.png", Texture.class);
         texturesLoaded = true;
     }
 
@@ -118,15 +137,26 @@ public class Res {
     }
 
     public void dispose(){
+        textureAtlas.dispose();
+        wallTexture.dispose();
         //font128.dispose(); // this makes assetManager.dispose() to cause a crash.
-        platTexture.dispose();
-        platTexture.dispose();
-        arrowTexture.dispose();
+        //platTexture.dispose();
+        //platTexture.dispose();
+        //arrowTexture.dispose();
         //assetManager.dispose(); // i think we need to dipose texts both ways.
     }
 
 
     public boolean texturesLoaded() {
         return texturesLoaded;
+    }
+
+    public static void updateBestScore(int currentScore) {
+        int bestScore = prefs.getInteger("bestscore");
+        if (currentScore > bestScore){
+            prefs.putInteger("bestscore", currentScore);
+            prefs.flush();
+        }
+
     }
 }

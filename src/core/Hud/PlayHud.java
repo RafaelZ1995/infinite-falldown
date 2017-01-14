@@ -1,12 +1,6 @@
 package core.Hud;
 
-import com.badlogic.gdx.Game;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 
 import core.game.GameApp;
 import core.handlers.Res;
@@ -33,14 +27,19 @@ public class PlayHud {
     private final float scoreY = VIR_HEIGHT - VIR_HEIGHT/10;
 
     // add in ArrowCharger and Rain here?
+    private ArrowCharger arrowCharger;
+    private Rain rain;
 
     // arrow charger
    // private ArrowCharger arrowCharger;
 
     public PlayHud(PlayScreen playScreen) {
-        this.sb = GameApp.APP.getBatch();
+        this.sb = GameApp.APP.getSb();
         this.playScreen = playScreen;
-        //arrowCharger = new ArrowCharger();
+
+        // hud camera elements
+        arrowCharger = new ArrowCharger(playScreen.getPlayer());
+        rain = new Rain();
     }
 
     /**
@@ -48,14 +47,23 @@ public class PlayHud {
      * still gotta make that 56 in a relation to VIR width or height
      */
     public void render(){
+
+        // score rendering
         int depth = playScreen.getScore();
         String depthString = String.valueOf(depth);
-        //Res.font128.draw(sb, depthString, scoreX - 56, scoreY); // font camera already set
+        Res.font128.getData().setScale(1f, 1f);
+        Res.font128.draw(sb, depthString, scoreX - 56, scoreY); // font camera already set
 
-        //arrowCharger.render();
+        arrowCharger.render();
+        rain.render();
     }
 
     public void dispose(){
+        arrowCharger.dispose();
+        rain.dispose();
+    }
 
+    public Rain getRain() {
+        return rain;
     }
 }

@@ -7,6 +7,7 @@ import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.Manifold;
 
 import core.game.GameApp;
+import core.objects.Ball;
 import core.pickups.ScorePickup;
 import core.screens.PlayScreen;
 
@@ -47,13 +48,18 @@ public class PlayContactListener implements ContactListener{
 
     // -------------------------------------- PRIVATE METHODS --------------------------------------
     private void handle_ball_plat_collision(Fixture fa, Fixture fb){
-        if (fa.getUserData().equals("Ball") || fb.getUserData().equals("Ball")) {
+        if (fa.getUserData() instanceof Ball || fb.getUserData() instanceof Ball) {
             if (fa.getUserData().equals("Platform") || fb.getUserData().equals("Platform")) {
-                // if here, player collided with a platform.
-                //System.out.println("COLLISION, CHANGING TO PLAYSCREEN");
-                //GameApp.APP.getScreen().dispose();
-                //GameApp.APP.setScreen(new PlayScreen());
+
+                Ball ball = null;
+                if (fa.getFilterData().categoryBits == Cons.BIT_PLAYER)
+                    ball = (Ball) fa.getUserData();
+                else if (fb.getFilterData().categoryBits == Cons.BIT_PLAYER)
+                    ball = (Ball) fb.getUserData();
+
                 playScreen.setCrashed(true);
+                playScreen.renderBallExplosion(ball.getVirX(), ball.getVirY());
+                System.out.println("1 Explosion@@@");
             }
         }
     }
@@ -65,7 +71,7 @@ public class PlayContactListener implements ContactListener{
      * @param fb
      */
     private void handle_ball_scorePickup_collision(Fixture fa, Fixture fb) {
-        if (fa.getUserData().equals("Ball") || fb.getUserData().equals("Ball")) {
+        if (fa.getUserData() instanceof Ball || fb.getUserData() instanceof Ball) {
             if (fa.getUserData() instanceof ScorePickup || fb.getUserData() instanceof ScorePickup) {
                 playScreen.currentScore++; // increase score
                 playScreen.getPlayer().resetExtraRadiusGrowth();
@@ -78,7 +84,10 @@ public class PlayContactListener implements ContactListener{
                     sp = (ScorePickup) fb.getUserData();
 
 
+                // set bar effect
                 playScreen.setBarEffect(sp.getX());
+
+                // free This score pickup
                 playScreen.getScorePickups().removeValue(sp, true);
                 playScreen.getSpPool().free(sp);
             }

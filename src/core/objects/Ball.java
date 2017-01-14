@@ -2,7 +2,6 @@ package core.objects;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.ParticleEffect;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -43,6 +42,7 @@ public class Ball implements InputProcessor {
 
     // Properties
     private final int RADIUS = BALL_DIAM / 2;
+    private boolean isDead;
 
     private final float XFORCE = BALL_X_FORCE; // multiplier for left/rightward swipe
     private float virX; // virtual coordinates
@@ -54,7 +54,7 @@ public class Ball implements InputProcessor {
     private Body body;
 
     // growth "poison"
-    private boolean growthPoisoned = false;
+    private boolean growthPoisoned = false; // doesnt work well.
     private float radiusGrowth = 0; // amount to add to the body's RADIUS every second
     private float TotalCurrentRadius = RADIUS + radiusGrowth;
 
@@ -81,8 +81,22 @@ public class Ball implements InputProcessor {
     public Ball(World world, Vector2 pos, BallGraph ballGraph) {
         this.world = world;
         this.pos = pos;
-        this.sb = GameApp.APP.getBatch();
+        this.sb = GameApp.APP.getSb();
         this.ballGraph = ballGraph;
+        virX = pos.x;
+        virY = pos.y;
+        pos.scl(1 / PPM);
+        xForceRatio = 0;
+        construct2d();
+        Gdx.input.setInputProcessor(this);
+
+        initParticleEffect();
+    }
+
+    public Ball(World world, Vector2 pos) {
+        this.world = world;
+        this.pos = pos;
+        this.sb = GameApp.APP.getSb();
         virX = pos.x;
         virY = pos.y;
         pos.scl(1 / PPM);
@@ -186,15 +200,13 @@ public class Ball implements InputProcessor {
      * Render
      */
     public void render() {
+        update();
         effect.draw(sb, Gdx.graphics.getDeltaTime());
         sb.setColor(1, 1, 1, 1);
-
         sb.draw(Res.playerRegion, body.getPosition().x * PPM - TotalCurrentRadius,
                 body.getPosition().y * PPM - TotalCurrentRadius,
                 TotalCurrentRadius * 2,
                 TotalCurrentRadius * 2);
-
-
     }
 
     /**
@@ -210,6 +222,7 @@ public class Ball implements InputProcessor {
         // set shape
         CircleShape shape = new CircleShape();
         shape.setRadius(RADIUS / PPM);
+        System.out.println("what is going on " + shape);
 
 
         // Define fixture
@@ -222,8 +235,7 @@ public class Ball implements InputProcessor {
 
         // Create the actual fixture onto the body
         Fixture fixture = body.createFixture(fdef);
-        fixture.setUserData("Ball"); // to recognize in contact listener
-
+        fixture.setUserData(this); // to recognize in contact listener
     }
 
 
@@ -239,8 +251,8 @@ public class Ball implements InputProcessor {
         } else {
             leftSideTouchDown = false;
         }
-
-        touchDownGraphMovement();
+        if (!FREE_ROAM)
+            touchDownGraphMovement();
         return false;
     }
 
@@ -391,5 +403,13 @@ public class Ball implements InputProcessor {
 
     public void resetExtraRadiusGrowth() {
         radiusGrowth = 0;
+    }
+
+    public void setAsInputProcessor() {
+        Gdx.input.setInputProcessor(this);
+    }
+
+    public void setPosition(float x, float y) {
+        body.setTransform(x / PPM, y / PPM, 0);
     }
 }

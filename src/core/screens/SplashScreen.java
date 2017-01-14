@@ -8,7 +8,6 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 import core.game.GameApp;
 
-import static core.handlers.Cons.PLAT_WIDTH;
 import static core.handlers.Cons.VIR_HEIGHT;
 import static core.handlers.Cons.VIR_WIDTH;
 
@@ -33,7 +32,7 @@ public class SplashScreen implements Screen{
     private float y = effectHeight / 2;
 
     public SplashScreen() {
-        sb = GameApp.APP.getBatch();
+        sb = GameApp.APP.getSb();
         bg = new Texture(Gdx.files.internal("SplashScreen/bg.png"));
         initParticleEffect();
     }
